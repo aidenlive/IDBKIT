@@ -1,0 +1,701 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>idbkit — a typed, promise-based IndexedDB toolkit</title>
+    <meta
+      name="description"
+      content="idbkit wraps IndexedDB in a small, modern, fully-typed API: schema migrations, a fluent query builder, pagination, transactions, and backup/restore — with zero runtime dependencies."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <meta
+      name="theme-color"
+      content="#f7f8f4"
+      media="(prefers-color-scheme: light)"
+    />
+    <meta
+      name="theme-color"
+      content="#0f1115"
+      media="(prefers-color-scheme: dark)"
+    />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles/main.css" />
+    <script src="vendor/idbkit.global.js" defer></script>
+    <script src="scripts/highlight.js" defer></script>
+    <script src="scripts/playground.js" defer></script>
+    <script src="scripts/main.js" defer></script>
+    <script>
+      // Set the theme before paint to avoid a flash.
+      (function () {
+        try {
+          var saved = localStorage.getItem("idbkit-theme");
+          if (saved === "light" || saved === "dark") {
+            document.documentElement.dataset.theme = saved;
+          } else {
+            document.documentElement.removeAttribute("data-theme");
+          }
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <!-- SVG icon definitions -->
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <symbol id="i-sun" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="4" />
+          <path
+            d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"
+          />
+        </symbol>
+        <symbol id="i-moon" viewBox="0 0 24 24">
+          <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
+        </symbol>
+        <symbol id="i-github" viewBox="0 0 24 24">
+          <path
+            d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.6 2.4 1.1 3 .8.1-.6.3-1.1.6-1.4-2.2-.300-4.6-1.1-4.6-5a3.9 3.9 0 0 1 1-2.7 3.6 3.6 0 0 1 .1-2.6s.8-.3 2.7 1a9.4 9.4 0 0 1 5 0c1.9-1.3 2.7-1 2.7-1 .5 1.4.2 2.4.1 2.6a3.9 3.9 0 0 1 1 2.7c0 3.9-2.3 4.7-4.6 5 .4.3.7.9.7 1.8v2.7c0 .3.2.6.7.5A10 10 0 0 0 12 2z"
+          />
+        </symbol>
+        <symbol id="i-arrow" viewBox="0 0 24 24">
+          <path d="M5 12h14M13 6l6 6-6 6" />
+        </symbol>
+        <symbol id="i-arrow-up-right" viewBox="0 0 24 24">
+          <path d="M7 17 17 7M9 7h8v8" />
+        </symbol>
+        <symbol id="i-copy" viewBox="0 0 24 24">
+          <rect x="9" y="9" width="11" height="11" rx="2.5" />
+          <path d="M5 15V5a2 2 0 0 1 2-2h8" />
+        </symbol>
+        <symbol id="i-check" viewBox="0 0 24 24">
+          <path d="M5 12.5 10 17l9-10" />
+        </symbol>
+        <symbol id="i-play" viewBox="0 0 24 24">
+          <path d="M7 5.5v13l11-6.5z" fill="currentColor" stroke="none" />
+        </symbol>
+        <symbol id="i-schema" viewBox="0 0 24 24">
+          <rect x="3" y="3" width="7" height="7" rx="1.5" />
+          <rect x="14" y="14" width="7" height="7" rx="1.5" />
+          <path d="M10 6.5h4a2 2 0 0 1 2 2v5" />
+        </symbol>
+        <symbol id="i-query" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="6" />
+          <path d="m20 20-3.5-3.5" />
+        </symbol>
+        <symbol id="i-migrate" viewBox="0 0 24 24">
+          <path d="M4 8h12M12 4l4 4-4 4M20 16H8m4 4-4-4 4-4" />
+        </symbol>
+        <symbol id="i-pages" viewBox="0 0 24 24">
+          <rect x="4" y="4" width="11" height="14" rx="1.5" />
+          <path d="M18 7h2v13H9" />
+        </symbol>
+        <symbol id="i-tx" viewBox="0 0 24 24">
+          <path d="M4 7h13l-3-3M20 17H7l3 3" />
+        </symbol>
+        <symbol id="i-backup" viewBox="0 0 24 24">
+          <path d="M12 3v11m0 0 4-4m-4 4-4-4" />
+          <path d="M5 16v3a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3" />
+        </symbol>
+        <symbol id="i-doc" viewBox="0 0 24 24">
+          <path d="M6 3h8l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+          <path d="M14 3v4h4M8 13h8M8 17h5" />
+        </symbol>
+        <symbol id="i-bolt" viewBox="0 0 24 24">
+          <path d="M13 2 4 14h7l-1 8 9-12h-7z" />
+        </symbol>
+      </defs>
+    </svg>
+
+    <header class="nav">
+      <nav class="nav__inner shell" aria-label="Primary">
+        <a class="brand" href="#top" aria-label="idbkit home">
+          <svg class="brand__mark" viewBox="0 0 32 32" aria-hidden="true">
+            <rect
+              x="2"
+              y="2"
+              width="28"
+              height="28"
+              rx="8"
+              fill="var(--accent-solid)"
+            />
+            <rect x="8" y="8" width="6" height="6" rx="1.5" fill="var(--ink-950)" opacity="0.85" />
+            <rect x="18" y="8" width="6" height="6" rx="1.5" fill="var(--ink-950)" opacity="0.5" />
+            <rect x="8" y="18" width="6" height="6" rx="1.5" fill="var(--ink-950)" opacity="0.5" />
+            <rect x="18" y="18" width="6" height="6" rx="1.5" fill="var(--ink-950)" opacity="0.85" />
+          </svg>
+          idbkit
+        </a>
+
+        <div class="nav__group">
+          <ul class="nav__links">
+            <li><a class="nav__link" href="#features">Features</a></li>
+            <li><a class="nav__link" href="#playground">Playground</a></li>
+            <li><a class="nav__link" href="#reference">Reference</a></li>
+            <li><a class="nav__link" href="#docs">Docs</a></li>
+          </ul>
+          <button
+            class="icon-btn"
+            id="theme-toggle"
+            type="button"
+            aria-label="Toggle color theme"
+          >
+            <svg class="icon" aria-hidden="true" data-theme-icon>
+              <use href="#i-moon" />
+            </svg>
+          </button>
+          <a
+            class="icon-btn"
+            href="https://github.com/idbkit/idbkit"
+            aria-label="View source on GitHub"
+            rel="noopener"
+          >
+            <svg class="icon" aria-hidden="true"><use href="#i-github" /></svg>
+          </a>
+        </div>
+      </nav>
+    </header>
+
+    <main id="main">
+      <span id="top"></span>
+
+      <!-- HERO -->
+      <section class="hero shell" aria-labelledby="hero-title">
+        <div class="hero__grid" aria-hidden="true"></div>
+        <span
+          class="hero__spark"
+          style="inset-block-start: 16%; inset-inline-start: 12%"
+          aria-hidden="true"
+        ></span>
+        <span
+          class="hero__spark"
+          style="
+            inset-block-start: 30%;
+            inset-inline-end: 16%;
+            animation-delay: 1.3s;
+          "
+          aria-hidden="true"
+        ></span>
+        <span
+          class="hero__spark"
+          style="
+            inset-block-start: 8%;
+            inset-inline-start: 54%;
+            animation-delay: 2.1s;
+          "
+          aria-hidden="true"
+        ></span>
+
+        <span class="badge"
+          ><span class="badge__dot" aria-hidden="true"></span>v1.0 · zero
+          dependencies</span
+        >
+        <h1 class="hero__title" id="hero-title">
+          Browser storage, <span class="accent">without the ceremony.</span>
+        </h1>
+        <p class="hero__lede">
+          idbkit is a typed, promise-based toolkit for IndexedDB. Schema
+          migrations, a fluent query builder, pagination, transactions, and
+          backup — mapped one-to-one to the database underneath, never hidden.
+        </p>
+
+        <div class="hero__actions">
+          <a class="btn btn--primary" href="#playground">
+            Try the playground
+            <svg class="icon" aria-hidden="true"><use href="#i-play" /></svg>
+          </a>
+          <a class="btn btn--ghost" href="#docs">Read the docs</a>
+          <div class="install">
+            <span class="install__prompt" aria-hidden="true">$</span>
+            <code id="install-cmd">npm install idbkit</code>
+            <button
+              class="copy-btn"
+              type="button"
+              data-copy="npm install idbkit"
+              aria-label="Copy install command"
+            >
+              <svg class="icon" aria-hidden="true"><use href="#i-copy" /></svg>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- FEATURES -->
+      <section class="section shell" id="features" aria-labelledby="features-h">
+        <div class="section-head" data-reveal>
+          <span class="eyebrow">What you get</span>
+          <h2 id="features-h">Everything you actually build, already typed.</h2>
+          <p>
+            The primitives map straight to IndexedDB concepts, so there's no new
+            mental model — just the rough edges removed.
+          </p>
+        </div>
+
+        <div class="features">
+          <article class="feature feature--wide feature--tall" data-reveal>
+            <div class="feature__icon">
+              <svg class="icon" aria-hidden="true"><use href="#i-schema" /></svg>
+            </div>
+            <h3>End-to-end types</h3>
+            <p>
+              Describe your stores once. Get inference on keys, values, indexes,
+              and query results across every call — autocomplete that actually
+              knows your data.
+            </p>
+            <div class="code-card" style="margin-block-start: var(--space-l)">
+              <div class="code-card__bar">
+                <span class="code-card__dot"></span><span class="code-card__dot"></span
+                ><span class="code-card__dot"></span>
+                <span class="code-card__name">schema.ts</span>
+              </div>
+              <pre data-lang="ts"><code>interface AppSchema extends Schema {
+  users: {
+    key: string;
+    value: User;
+    indexes: { byEmail: string };
+  };
+}
+
+const db = await openDatabase&lt;AppSchema&gt;({
+  name: "app",
+  version: 1,
+  stores: {
+    users: {
+      keyPath: "id",
+      indexes: { byEmail: { keyPath: "email", unique: true } },
+    },
+  },
+});</code></pre>
+            </div>
+          </article>
+
+          <article class="feature" data-reveal>
+            <div class="feature__icon">
+              <svg class="icon" aria-hidden="true"><use href="#i-query" /></svg>
+            </div>
+            <h3>Fluent queries</h3>
+            <p>
+              Range operators, filters, ordering, and limits read like a
+              sentence — and pick the fastest execution path for you.
+            </p>
+          </article>
+
+          <article class="feature" data-reveal>
+            <div class="feature__icon">
+              <svg class="icon" aria-hidden="true"><use href="#i-migrate" /></svg>
+            </div>
+            <h3>Automatic migrations</h3>
+            <p>
+              Declare the target schema; idbkit reconciles stores and indexes.
+              Write data backfills only when you need them.
+            </p>
+          </article>
+
+          <article class="feature" data-reveal>
+            <div class="feature__icon">
+              <svg class="icon" aria-hidden="true"><use href="#i-tx" /></svg>
+            </div>
+            <h3>Atomic transactions</h3>
+            <p>
+              Span multiple stores in one transaction. Throw to roll back —
+              partial writes never happen.
+            </p>
+          </article>
+
+          <article class="feature" data-reveal>
+            <div class="feature__icon">
+              <svg class="icon" aria-hidden="true"><use href="#i-pages" /></svg>
+            </div>
+            <h3>Real pagination</h3>
+            <p>
+              Offset pages with totals, or keyset pages that stay O(pageSize) no
+              matter how deep you scroll.
+            </p>
+          </article>
+
+          <article class="feature" data-reveal>
+            <div class="feature__icon">
+              <svg class="icon" aria-hidden="true"><use href="#i-backup" /></svg>
+            </div>
+            <h3>Backup &amp; restore</h3>
+            <p>
+              Snapshot the whole database to a plain object or JSON, import it
+              back, or reset to a clean slate.
+            </p>
+          </article>
+
+          <article class="feature" data-reveal>
+            <div class="feature__icon">
+              <svg class="icon" aria-hidden="true"><use href="#i-bolt" /></svg>
+            </div>
+            <h3>Lean &amp; native</h3>
+            <p>
+              ~13&nbsp;KB gzipped, fully tree-shakeable, zero runtime
+              dependencies. ESM, CJS, and a drop-in script build.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <!-- CODE EXAMPLE -->
+      <section class="section shell shell--narrow" aria-labelledby="ex-h">
+        <div class="section-head" data-reveal>
+          <span class="eyebrow">By example</span>
+          <h2 id="ex-h">Small surface, real power.</h2>
+        </div>
+
+        <div
+          class="tabs"
+          role="tablist"
+          aria-label="Code examples"
+          data-reveal
+          style="margin-block-start: var(--space-l)"
+        >
+          <button class="tab" role="tab" aria-selected="true" data-tab="ex-write">
+            Open &amp; write
+          </button>
+          <button class="tab" role="tab" aria-selected="false" data-tab="ex-query">
+            Query
+          </button>
+          <button class="tab" role="tab" aria-selected="false" data-tab="ex-tx">
+            Transaction
+          </button>
+        </div>
+
+        <div class="code-card" data-reveal style="margin-block-start: var(--space-s)">
+          <div class="code-card__bar">
+            <span class="code-card__dot"></span><span class="code-card__dot"></span
+            ><span class="code-card__dot"></span>
+            <span class="code-card__name" data-card-name>example.ts</span>
+          </div>
+          <pre id="ex-write" data-lang="ts"><code>import { openDatabase, uuid } from "idbkit";
+
+const db = await openDatabase({
+  name: "notebook",
+  version: 1,
+  stores: { notes: { keyPath: "id" } },
+});
+
+await db.store("notes").add({
+  id: uuid(),
+  title: "Hello",
+  body: "First note",
+  createdAt: Date.now(),
+});
+
+const note = await db.store("notes").get(someId);</code></pre>
+          <pre id="ex-query" hidden data-lang="ts"><code>// Highest-priority open tasks, newest first, capped at 10.
+const urgent = await db
+  .store("tasks")
+  .query()
+  .index("byPriority")
+  .aboveOrEqual(2)
+  .filter((t) => !t.done)
+  .reverse()
+  .limit(10)
+  .toArray();
+
+// Keyset pagination — cheap at any depth.
+const page = await db.store("tasks").paginateKeyset({
+  pageSize: 50,
+  after: lastCursor,
+});</code></pre>
+          <pre id="ex-tx" hidden data-lang="ts"><code>// Debit, credit, and log — all or nothing.
+await db.transaction(["accounts", "ledger"], "readwrite", async (tx) => {
+  const accounts = tx.store("accounts");
+  const from = await accounts.get("a");
+  const to = await accounts.get("b");
+  if (from.balance &lt; 100) throw new Error("Insufficient funds");
+
+  await accounts.put({ ...from, balance: from.balance - 100 });
+  await accounts.put({ ...to, balance: to.balance + 100 });
+  await tx.store("ledger").add({ id: uuid(), amount: 100 });
+});
+// Threw? The whole transaction rolls back.</code></pre>
+        </div>
+      </section>
+
+      <!-- PLAYGROUND -->
+      <section class="section shell" id="playground" aria-labelledby="pg-h">
+        <div class="section-head" data-reveal>
+          <span class="eyebrow">Live · runs in your browser</span>
+          <h2 id="pg-h">A real database, right here.</h2>
+          <p>
+            This editor runs the actual idbkit bundle against your browser's
+            IndexedDB. Pick a preset or write your own — nothing is sent
+            anywhere.
+          </p>
+        </div>
+
+        <div class="playground" data-reveal>
+          <div class="playground__top">
+            <div
+              class="playground__presets"
+              role="group"
+              aria-label="Example presets"
+            >
+              <button class="chip" type="button" data-preset="quickstart" aria-pressed="true">
+                Quick start
+              </button>
+              <button class="chip" type="button" data-preset="query" aria-pressed="false">
+                Query builder
+              </button>
+              <button class="chip" type="button" data-preset="bulk" aria-pressed="false">
+                Bulk &amp; pages
+              </button>
+              <button class="chip" type="button" data-preset="transaction" aria-pressed="false">
+                Transaction
+              </button>
+              <button class="chip" type="button" data-preset="backup" aria-pressed="false">
+                Backup
+              </button>
+            </div>
+          </div>
+
+          <div class="playground__body">
+            <div class="editor">
+              <label class="visually-hidden" for="pg-code">Editable code</label>
+              <textarea
+                id="pg-code"
+                class="editor__code"
+                spellcheck="false"
+                autocapitalize="off"
+                autocomplete="off"
+                autocorrect="off"
+                wrap="off"
+              ></textarea>
+              <div class="editor__actions">
+                <button class="btn btn--primary btn--sm" id="pg-run" type="button">
+                  Run
+                  <svg class="icon" aria-hidden="true"><use href="#i-play" /></svg>
+                </button>
+                <button class="btn btn--ghost btn--sm" id="pg-reset" type="button">
+                  Reset
+                </button>
+                <span class="editor__hint">
+                  <span class="kbd">⌘</span><span class="kbd">↵</span> to run
+                </span>
+              </div>
+            </div>
+
+            <div class="output">
+              <div class="output__head">
+                <h3>Console</h3>
+                <button class="btn btn--ghost btn--sm" id="pg-clear" type="button">
+                  Clear
+                </button>
+              </div>
+              <output
+                class="console"
+                id="pg-console"
+                aria-live="polite"
+                role="log"
+              ></output>
+              <div class="cells" id="pg-cells" aria-hidden="true"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- REFERENCE -->
+      <section class="section shell" id="reference" aria-labelledby="ref-h">
+        <div class="section-head" data-reveal>
+          <span class="eyebrow">API at a glance</span>
+          <h2 id="ref-h">The whole surface on one screen.</h2>
+        </div>
+
+        <div class="ref" data-reveal>
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Entry point</th>
+                <th scope="col">What it does</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>openDatabase()</td>
+                <td>Open, create, and migrate a typed database.</td>
+              </tr>
+              <tr>
+                <td>db.store(name)</td>
+                <td>
+                  Typed store: get, getMany, getAll, count, has, add, put,
+                  update, delete, clear.
+                </td>
+              </tr>
+              <tr>
+                <td>store.bulkAdd / bulkPut / bulkDelete</td>
+                <td>Atomic batch writes in a single transaction.</td>
+              </tr>
+              <tr>
+                <td>store.query()</td>
+                <td>
+                  Fluent builder: equals, between, startsWith, filter, map,
+                  reverse, limit, paginate.
+                </td>
+              </tr>
+              <tr>
+                <td>store.index(name)</td>
+                <td>Look up and range over a named or compound index.</td>
+              </tr>
+              <tr>
+                <td>store.iterate()</td>
+                <td>Cursor walk with stop / update / delete directives.</td>
+              </tr>
+              <tr>
+                <td>store.paginate / paginateKeyset</td>
+                <td>Offset pages with totals, or O(pageSize) keyset pages.</td>
+              </tr>
+              <tr>
+                <td>db.transaction()</td>
+                <td>Atomic multi-store transactions with rollback and retry.</td>
+              </tr>
+              <tr>
+                <td>uuid / ulid / timestampKey / counter</td>
+                <td>Key generators, including sortable ULIDs.</td>
+              </tr>
+              <tr>
+                <td>db.export / import / restore / reset</td>
+                <td>Snapshot, restore, and clear the database.</td>
+              </tr>
+              <tr>
+                <td>withRetry()</td>
+                <td>Exponential backoff with jitter for transient failures.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- DOCS -->
+      <section class="section shell" id="docs" aria-labelledby="docs-h">
+        <div class="section-head" data-reveal>
+          <span class="eyebrow">Documentation</span>
+          <h2 id="docs-h">Go deeper.</h2>
+          <p>
+            Full guides ship with the package in the <code>docs/</code> folder.
+          </p>
+        </div>
+
+        <div class="docs">
+          <a class="doc-link" href="../docs/installation.md" data-reveal>
+            <span class="doc-link__name"
+              >Installation
+              <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right" /></svg
+            ></span>
+            <p>Package managers, CDN, bundlers, Deno.</p>
+          </a>
+          <a class="doc-link" href="../docs/quick-start.md" data-reveal>
+            <span class="doc-link__name"
+              >Quick start
+              <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right" /></svg
+            ></span>
+            <p>From zero to writing and querying records.</p>
+          </a>
+          <a class="doc-link" href="../docs/api-reference.md" data-reveal>
+            <span class="doc-link__name"
+              >API reference
+              <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right" /></svg
+            ></span>
+            <p>Every method, option, and type.</p>
+          </a>
+          <a class="doc-link" href="../docs/migration-guide.md" data-reveal>
+            <span class="doc-link__name"
+              >Migration guide
+              <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right" /></svg
+            ></span>
+            <p>Evolve your schema safely over time.</p>
+          </a>
+          <a class="doc-link" href="../docs/best-practices.md" data-reveal>
+            <span class="doc-link__name"
+              >Best practices
+              <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right" /></svg
+            ></span>
+            <p>Transactions, indexing, quota, and keys.</p>
+          </a>
+          <a class="doc-link" href="../docs/performance.md" data-reveal>
+            <span class="doc-link__name"
+              >Performance
+              <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right" /></svg
+            ></span>
+            <p>Staying fast with large collections.</p>
+          </a>
+          <a class="doc-link" href="../docs/browser-compatibility.md" data-reveal>
+            <span class="doc-link__name"
+              >Compatibility
+              <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right" /></svg
+            ></span>
+            <p>Supported engines and platform quirks.</p>
+          </a>
+          <a class="doc-link" href="../docs/faq.md" data-reveal>
+            <span class="doc-link__name"
+              >FAQ
+              <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right" /></svg
+            ></span>
+            <p>How it compares and common questions.</p>
+          </a>
+        </div>
+      </section>
+
+      <!-- CTA -->
+      <section class="section shell shell--narrow" aria-labelledby="cta-h">
+        <div class="cta" data-reveal>
+          <h2 id="cta-h">Persist something today.</h2>
+          <p>
+            Install in seconds, keep your types, and stop fighting the
+            event-based API.
+          </p>
+          <div class="install" style="margin-inline: auto">
+            <span class="install__prompt" aria-hidden="true">$</span>
+            <code>npm install idbkit</code>
+            <button
+              class="copy-btn"
+              type="button"
+              data-copy="npm install idbkit"
+              aria-label="Copy install command"
+            >
+              <svg class="icon" aria-hidden="true"><use href="#i-copy" /></svg>
+            </button>
+          </div>
+          <div class="cta__actions" style="margin-block-start: var(--space-l)">
+            <a class="btn btn--primary" href="#playground"
+              >Open the playground
+              <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg
+            ></a>
+            <a
+              class="btn btn--ghost"
+              href="https://github.com/idbkit/idbkit"
+              rel="noopener"
+              >Star on GitHub</a
+            >
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer__inner shell">
+        <p class="footer__meta">
+          idbkit · MIT licensed · Built on the platform, with the platform.
+        </p>
+        <ul class="footer__links">
+          <li><a href="#features">Features</a></li>
+          <li><a href="#playground">Playground</a></li>
+          <li><a href="../docs/api-reference.md">API</a></li>
+          <li><a href="https://github.com/idbkit/idbkit" rel="noopener">GitHub</a></li>
+        </ul>
+      </div>
+    </footer>
+  </body>
+</html>
